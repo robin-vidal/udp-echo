@@ -50,7 +50,7 @@ func main() {
 
 		if n > 0 {
 			if rand.Intn(100) < cfg.dropRate {
-				fmt.Fprintf(os.Stderr, "dropping packet from %\n", addr)
+				fmt.Fprintf(os.Stderr, "dropping packet from %s\n", addr)
 				continue
 			}
 
