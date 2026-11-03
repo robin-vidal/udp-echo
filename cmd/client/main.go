@@ -15,6 +15,7 @@ type config struct {
 	port    int
 	msg     string
 	timeout int
+	retries int
 
 	bufSize int
 }
@@ -24,7 +25,8 @@ func parseFlags() *config {
 	flag.StringVar(&cfg.addr, "addr", "localhost", "address the server listen on")
 	flag.IntVar(&cfg.port, "port", 8080, "port the server listen on")
 	flag.StringVar(&cfg.msg, "msg", "Hello World!", "message to send to the server")
-	flag.IntVar(&cfg.timeout, "timeout", 2000, "read timeout in milliseconds")
+	flag.IntVar(&cfg.timeout, "timeout", 2000, "read/write timeouts in milliseconds")
+	flag.IntVar(&cfg.retries, "retries", 3, "number of retries after a timeout")
 	flag.IntVar(&cfg.bufSize, "bufferSize", 1024, "size of the message buffer")
 
 	flag.Parse()
@@ -42,21 +44,30 @@ func main() {
 	}
 	defer conn.Close()
 
-	conn.SetWriteDeadline(time.Now().Add(time.Duration(cfg.timeout) * time.Millisecond))
-
 	msg := []byte(cfg.msg)
-	_, err = conn.Write(msg)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "unable to send the message: %v\n", err)
-		os.Exit(1)
+	b := make([]byte, cfg.bufSize)
+	var n int
+
+	for attempt := 0; attempt <= cfg.retries; attempt++ {
+		conn.SetWriteDeadline(time.Now().Add(time.Duration(cfg.timeout) * time.Millisecond))
+		_, err = conn.Write(msg)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "attempt %d: unable to send the message: %v\n", attempt+1, err)
+			continue
+		}
+
+		conn.SetReadDeadline(time.Now().Add(time.Duration(cfg.timeout) * time.Millisecond))
+		n, err = conn.Read(b)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "attempt %d: unable to read the message: %v\n", attempt+1, err)
+			continue
+		}
+
+		break
 	}
 
-	conn.SetReadDeadline(time.Now().Add(time.Duration(cfg.timeout) * time.Millisecond))
-
-	b := make([]byte, cfg.bufSize)
-	n, err := conn.Read(b)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "unable to read the message: %v\n", err)
+		fmt.Fprintf(os.Stderr, "failed after %d retries\n", cfg.retries)
 		os.Exit(1)
 	}
 
