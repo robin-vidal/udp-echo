@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strconv"
@@ -17,7 +16,8 @@ func main() {
 	port := fmt.Sprintf(":%s", strconv.Itoa(PORT))
 	conn, err := net.ListenPacket("udp", port)
 	if err != nil {
-		log.Fatalf("listen: %v", err)
+		fmt.Fprintf(os.Stderr, "listen: %v", err)
+		os.Exit(1)
 	}
 	defer conn.Close()
 
@@ -25,7 +25,7 @@ func main() {
 	for {
 		n, addr, err := conn.ReadFrom(b)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error reading packet: %v", err)
+			fmt.Fprintf(os.Stderr, "error reading packet: %v\n", err)
 			continue
 		}
 
