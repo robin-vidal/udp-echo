@@ -1,19 +1,30 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"os"
-	"strconv"
 )
 
-const (
-	PORT        = 8080
-	BUFFER_SIZE = 1024
-)
+type config struct {
+	port    int
+	bufSize int
+}
+
+func parseFlags() *config {
+	var cfg config
+
+	flag.IntVar(&cfg.port, "port", 8080, "port the server listen on")
+	flag.IntVar(&cfg.bufSize, "bufferSize", 1024, "size of the message buffer")
+
+	flag.Parse()
+	return &cfg
+}
 
 func main() {
-	port := fmt.Sprintf(":%s", strconv.Itoa(PORT))
+	cfg := parseFlags()
+	port := fmt.Sprintf(":%d", cfg.port)
 	conn, err := net.ListenPacket("udp", port)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "listen: %v", err)
@@ -21,7 +32,7 @@ func main() {
 	}
 	defer conn.Close()
 
-	b := make([]byte, BUFFER_SIZE)
+	b := make([]byte, cfg.bufSize)
 	for {
 		n, addr, err := conn.ReadFrom(b)
 		if err != nil {

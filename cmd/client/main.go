@@ -9,26 +9,28 @@ import (
 	"strconv"
 )
 
-const (
-	BUFFER_SIZE = 1024
-)
+type config struct {
+	addr string
+	port int
+	msg  string
 
-func parseFlags() (string, int, string) {
-	var addr string
-	var port int
-	var msg string
+	bufSize int
+}
 
-	flag.StringVar(&addr, "addr", "localhost", "address the server listen on")
-	flag.IntVar(&port, "port", 8080, "port the server listen on")
-	flag.StringVar(&msg, "msg", "Hello World!", "message to send to the server")
+func parseFlags() *config {
+	var cfg config
+	flag.StringVar(&cfg.addr, "addr", "localhost", "address the server listen on")
+	flag.IntVar(&cfg.port, "port", 8080, "port the server listen on")
+	flag.StringVar(&cfg.msg, "msg", "Hello World!", "message to send to the server")
+	flag.IntVar(&cfg.bufSize, "bufferSize", 1024, "size of the message buffer")
 
 	flag.Parse()
-	return addr, port, msg
+	return &cfg
 }
 
 func main() {
-	addr, port, msg := parseFlags()
-	host := net.JoinHostPort(addr, strconv.Itoa(port))
+	cfg := parseFlags()
+	host := net.JoinHostPort(cfg.addr, strconv.Itoa(cfg.port))
 
 	conn, err := net.Dial("udp", host)
 	if err != nil {
@@ -37,22 +39,22 @@ func main() {
 	}
 	defer conn.Close()
 
-	msgBytes := []byte(msg)
-	_, err = conn.Write(msgBytes)
+	msg := []byte(cfg.msg)
+	_, err = conn.Write(msg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "unable to send the message: %v\n", err)
 		os.Exit(1)
 	}
 
-	b := make([]byte, BUFFER_SIZE)
+	b := make([]byte, cfg.bufSize)
 	n, err := conn.Read(b)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "unable to read the message: %v\n", err)
 		os.Exit(1)
 	}
 
-	if n != len(msgBytes) || !slices.Equal(b[:n], msgBytes) {
-		fmt.Fprintf(os.Stderr, "invalid response content:\n\tgot: %s\n\twant: %s\n", b, msgBytes)
+	if n != len(msg) || !slices.Equal(b[:n], msg) {
+		fmt.Fprintf(os.Stderr, "invalid response content:\n\tgot: %s\n\twant: %s\n", b, msg)
 		os.Exit(1)
 	}
 
