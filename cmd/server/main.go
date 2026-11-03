@@ -1,16 +1,21 @@
 package main
 
 import (
+	"strconv"
 	"fmt"
 	"log"
 	"net"
 	"os"
 )
 
-const BUFFER_SIZE = 1024
+const (
+	PORT = 8080
+	BUFFER_SIZE = 1024
+)
 
 func main() {
-	conn, err := net.ListenPacket("udp", ":8080")
+	port := fmt.Sprintf(":%s", strconv.Itoa(PORT))
+	conn, err := net.ListenPacket("udp", port)
 	if err != nil {
 		log.Fatalf("listen: %v", err)
 	}
