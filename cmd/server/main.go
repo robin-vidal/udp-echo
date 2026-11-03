@@ -1,15 +1,15 @@
 package main
 
 import (
-	"strconv"
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"strconv"
 )
 
 const (
-	PORT = 8080
+	PORT        = 8080
 	BUFFER_SIZE = 1024
 )
 
