@@ -7,12 +7,14 @@ import (
 	"os"
 	"slices"
 	"strconv"
+	"time"
 )
 
 type config struct {
-	addr string
-	port int
-	msg  string
+	addr    string
+	port    int
+	msg     string
+	timeout int
 
 	bufSize int
 }
@@ -22,6 +24,7 @@ func parseFlags() *config {
 	flag.StringVar(&cfg.addr, "addr", "localhost", "address the server listen on")
 	flag.IntVar(&cfg.port, "port", 8080, "port the server listen on")
 	flag.StringVar(&cfg.msg, "msg", "Hello World!", "message to send to the server")
+	flag.IntVar(&cfg.timeout, "timeout", 2000, "read timeout in milliseconds")
 	flag.IntVar(&cfg.bufSize, "bufferSize", 1024, "size of the message buffer")
 
 	flag.Parse()
@@ -39,12 +42,16 @@ func main() {
 	}
 	defer conn.Close()
 
+	conn.SetWriteDeadline(time.Now().Add(time.Duration(cfg.timeout) * time.Millisecond))
+
 	msg := []byte(cfg.msg)
 	_, err = conn.Write(msg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "unable to send the message: %v\n", err)
 		os.Exit(1)
 	}
+
+	conn.SetReadDeadline(time.Now().Add(time.Duration(cfg.timeout) * time.Millisecond))
 
 	b := make([]byte, cfg.bufSize)
 	n, err := conn.Read(b)
